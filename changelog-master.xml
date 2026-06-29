@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        NOTA DE ARQUITECTURA — splitStatements
+        =======================================
+        Los archivos con bloques PL/SQL (paquetes, triggers, bloques anónimos)
+        usan "/" como terminador SQL*Plus. Liquibase no entiende ese terminador:
+        si intentara ejecutar estos archivos directamente fallaría.
+
+        Por eso todos los changesets que contienen PL/SQL llevan:
+            splitStatements="false"   → el driver Oracle recibe el texto completo
+            runOnChange="true"        → refleja que son CREATE OR REPLACE (idempotentes)
+
+        Los dos archivos de DDL y DML puros (01 y 02) sí pueden dividirse
+        en sentencias, pero también contienen directivas SQL*Plus (PROMPT,
+        SELECT a pantalla) que fallarían en un run real de Liquibase.
+        Están incluidos para versionarlos, no para re-ejecutarlos.
+        Si algún día se necesita un fresh-deploy via Liquibase habrá que
+        limpiar esas directivas de cada archivo.
+    -->
+
+    <!-- ============================================================ -->
+    <!-- 01 — Esquema DDL                                             -->
+    <!-- DDL puro: CREATE TABLE, CREATE INDEX, constraints.           -->
+    <!-- splitStatements=true funciona para el DDL;                   -->
+    <!-- el archivo no contiene bloques PL/SQL.                       -->
+    <!-- ============================================================ -->
+    <changeSet id="01-esquema" author="system" runOnChange="false">
+        <sqlFile path="sql/01_esquema.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="true"
+                 endDelimiter=";"
+                 stripComments="false"/>
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- 02 — Catálogo de etapas y transiciones                       -->
+    <!-- DML puro: INSERT, COMMIT. Contiene PROMPT y SELECT           -->
+    <!-- que son SQL*Plus-only — pasarían sin error vía changelogSync  -->
+    <!-- pero fallarían si Liquibase los ejecuta en un fresh-deploy.  -->
+    <!-- ============================================================ -->
+    <changeSet id="02-catalogo" author="system" runOnChange="false">
+        <sqlFile path="sql/02_catalogo.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="true"
+                 endDelimiter=";"
+                 stripComments="false"/>
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- 03 — Especificación del paquete pkg_reclutamiento            -->
+    <!-- PL/SQL: CREATE OR REPLACE PACKAGE ... END pkg_reclutamiento; -->
+    <!-- Terminado con /  →  splitStatements=false obligatorio.       -->
+    <!-- runOnChange=true porque es CREATE OR REPLACE (idempotente).  -->
+    <!-- ============================================================ -->
+    <changeSet id="03-paquete-spec" author="system" runOnChange="true">
+        <sqlFile path="sql/03_paquete_reclutamiento_spec.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="false"
+                 stripComments="false"/>
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- 04 — Cuerpo del paquete pkg_reclutamiento                    -->
+    <!-- PL/SQL: CREATE OR REPLACE PACKAGE BODY ... END; /            -->
+    <!-- ============================================================ -->
+    <changeSet id="04-paquete-body" author="system" runOnChange="true">
+        <sqlFile path="sql/04_paquete_reclutamiento_body.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="false"
+                 stripComments="false"/>
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- 05 — Suite de pruebas manual                                 -->
+    <!-- Script de pruebas SQL*Plus: bloques PL/SQL anónimos,         -->
+    <!-- SET, PROMPT, ROLLBACK final.                                  -->
+    <!-- Incluido para versionar el snapshot; NO es una migración      -->
+    <!-- de datos. runOnChange=false: basta con registrarlo una vez.  -->
+    <!-- ============================================================ -->
+    <changeSet id="05-pruebas-manuales" author="system" runOnChange="false">
+        <sqlFile path="sql/05_pruebas.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="false"
+                 stripComments="false"/>
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- 06 — Tabla de auditoría técnica y trigger                    -->
+    <!-- Mezcla DDL (CREATE TABLE IF NOT EXISTS, CREATE INDEX) con     -->
+    <!-- un trigger PL/SQL y un bloque anónimo de verificación.        -->
+    <!-- El / después del trigger obliga a splitStatements=false.      -->
+    <!-- ============================================================ -->
+    <changeSet id="06-trigger-auditoria" author="system" runOnChange="true">
+        <sqlFile path="sql/06_trigger_auditoria.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="false"
+                 stripComments="false"/>
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- 07 — Suite utPLSQL (paquete de tests formales)               -->
+    <!-- CREATE OR REPLACE PACKAGE spec + body, SHOW ERRORS, EXEC.   -->
+    <!-- runOnChange=true porque los tests evolucionan con el código.  -->
+    <!-- ============================================================ -->
+    <changeSet id="07-utplsql-tests" author="system" runOnChange="true">
+        <sqlFile path="sql/07_utplsql_tests.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="false"
+                 stripComments="false"/>
+    </changeSet>
+
+</databaseChangeLog>

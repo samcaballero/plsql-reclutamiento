@@ -1,0 +1,11 @@
+#### Liquibase — Motor ATS Oracle 23ai Free
+#### Copia este archivo como liquibase.properties y rellena tus valores.
+#### liquibase.properties está en .gitignore y nunca debe commitearse.
+
+url=jdbc:oracle:thin:@localhost:1521/FREEPDB1
+username=system
+password=TU_PASSWORD_AQUI
+driver=oracle.jdbc.OracleDriver
+
+changeLogFile=changelog-master.xml
+logLevel=INFO
