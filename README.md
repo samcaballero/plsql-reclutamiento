@@ -15,6 +15,32 @@ Motor de pipeline de selección de personal implementado íntegramente en Oracle
 
 ---
 
+## Máquina de estados
+
+```mermaid
+stateDiagram-v2
+    [*] --> POSTULADO
+
+    POSTULADO    --> PRESELECCION
+    POSTULADO    --> RECHAZADO
+
+    PRESELECCION --> ENTREVISTA
+    PRESELECCION --> RECHAZADO
+
+    ENTREVISTA   --> OFERTA
+    ENTREVISTA   --> RECHAZADO
+
+    OFERTA       --> CONTRATADO
+    OFERTA       --> RECHAZADO
+
+    CONTRATADO   --> [*]
+    RECHAZADO    --> [*]
+```
+
+Las aristas hacia `RECHAZADO` representan el procedimiento `rechazar()` — atajo semántico sobre `mover_candidato` disponible desde cualquier etapa no terminal. Los estados terminales (`CONTRATADO`, `RECHAZADO`) no tienen transiciones de salida en `transiciones_permitidas`; cualquier intento de moverlos lanza `e_transicion_invalida`.
+
+---
+
 ## Estructura del repositorio
 
 ```
